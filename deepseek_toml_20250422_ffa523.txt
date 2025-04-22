@@ -1,3 +1,0 @@
-[azure_openai]
-AZURE_OPENAI_KEY = "votre-clef-api"
-AZURE_OPENAI_ENDPOINT = "https://votre-resource.openai.azure.com"
