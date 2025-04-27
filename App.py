@@ -47,16 +47,39 @@ def load_nlp_model():
         return None
 
 def setup_azure_openai():
-    """Configure le client Azure OpenAI"""
+    """Configure le client Azure OpenAI avec gestion des erreurs améliorée"""
     try:
+        # Vérification que les secrets sont bien chargés
+        if "azure_openai" not in st.secrets:
+            st.error("Configuration Azure OpenAI manquante dans secrets.toml")
+            return None
+            
+        config = st.secrets["azure_openai"]
+        
         client = AzureOpenAI(
-            api_key=st.secrets["AZURE_OPENAI_KEY"],
-            api_version="2023-05-15",
-            azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"]
+            api_key=config["AZURE_OPENAI_KEY"],
+            api_version="2023-05-15",  # Version d'API stable
+            azure_endpoint=config["AZURE_OPENAI_ENDPOINT"]
         )
+        
+        # Test de connexion immédiat
+        test_response = client.chat.completions.create(
+            model=config.get("DEPLOYMENT_NAME", "gpt-35-turbo"),  # Fallback si non spécifié
+            messages=[{"role": "user", "content": "Test de connexion"}],
+            max_tokens=5
+        )
+        
+        st.success("Connexion Azure OpenAI établie avec succès!")
         return client
+        
     except Exception as e:
-        st.error(f"Erreur de configuration Azure OpenAI: {str(e)}")
+        st.error(f"Échec de configuration Azure OpenAI: {str(e)}")
+        st.markdown("""
+        **Vérifiez que:**
+        1. Vos clés dans `secrets.toml` sont correctes
+        2. Votre ressource Azure est bien déployée
+        3. Le endpoint est accessible depuis votre réseau
+        """)
         return None
 
 def generate_with_azure_openai(prompt, client, model="gpt-4", temperature=0.7, max_tokens=1000):
