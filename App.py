@@ -47,15 +47,21 @@ def load_nlp_model():
         return None
 
 def setup_azure_openai():
-    """Configure le client Azure OpenAI avec gestion des erreurs améliorée"""
+    """Version ultra-robuste avec fallback"""
     try:
-        # Vérification que les secrets sont bien chargés
-        if "azure_openai" not in st.secrets:
-            st.error("Configuration Azure OpenAI manquante dans secrets.toml")
-            return None
-            
-        config = st.secrets["azure_openai"]
-        
+        # Méthode 1 : Lecture depuis secrets.toml
+        if hasattr(st, 'secrets') and 'azure_openai' in st.secrets:
+            config = st.secrets["azure_openai"]
+        # Méthode 2 : Fallback pour développement local
+        else:
+            from dotenv import load_dotenv
+            load_dotenv()
+            config = {
+                "AZURE_OPENAI_KEY": os.getenv("AZURE_OPENAI_KEY"),
+                "AZURE_OPENAI_ENDPOINT": os.getenv("AZURE_OPENAI_ENDPOINT"),
+                "DEPLOYMENT_NAME": os.getenv("DEPLOYMENT_NAME", "gpt-4o")
+            }
+
         client = AzureOpenAI(
             api_key=config["AZURE_OPENAI_KEY"],
             api_version="2024-02-15",
@@ -63,25 +69,25 @@ def setup_azure_openai():
         )
         
         # Test de connexion immédiat
-        test_response = client.chat.completions.create(
-            model=config.get("DEPLOYMENT_NAME", "gpt-35-turbo"),  # Fallback si non spécifié
-            messages=[{"role": "user", "content": "Test de connexion"}],
+        test = client.chat.completions.create(
+            model=config["DEPLOYMENT_NAME"],
+            messages=[{"role": "user", "content": "Test"}],
             max_tokens=5
         )
-        
-        st.success("Connexion Azure OpenAI établie avec succès!")
         return client
         
     except Exception as e:
-        st.error(f"Échec de configuration Azure OpenAI: {str(e)}")
-        st.markdown("""
-        **Vérifiez que:**
-        1. Vos clés dans `secrets.toml` sont correctes
-        2. Votre ressource Azure est bien déployée
-        3. Le endpoint est accessible depuis votre réseau
+        st.error(f"""
+        ❌ ERREUR CRITIQUE Azure OpenAI :
+        {str(e)}
+        
+        🔍 Vérifiez que :
+        1. Le fichier .streamlit/secrets.toml existe
+        2. Les clés sont correctes
+        3. Le endpoint est accessible
         """)
         return None
-
+    
 def generate_with_azure_openai(prompt, client, model="gpt-4", temperature=0.7, max_tokens=1000):
     """Génère du texte avec Azure OpenAI"""
     try:
