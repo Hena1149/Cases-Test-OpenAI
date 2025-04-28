@@ -47,46 +47,80 @@ def load_nlp_model():
         return None
 
 def setup_azure_openai():
-    """Version ultra-robuste avec fallback"""
+    """Initialisation robuste du client Azure OpenAI avec diagnostics détaillés."""
     try:
-        # Méthode 1 : Lecture depuis secrets.toml
+        # 1. Charger la configuration
         if hasattr(st, 'secrets') and 'azure_openai' in st.secrets:
             config = st.secrets["azure_openai"]
-        # Méthode 2 : Fallback pour développement local
         else:
-            from dotenv import load_dotenv
             load_dotenv()
             config = {
                 "AZURE_OPENAI_API_KEY": os.getenv("AZURE_OPENAI_API_KEY"),
                 "AZURE_OPENAI_ENDPOINT": os.getenv("AZURE_OPENAI_ENDPOINT"),
-                "AZURE_OPENAI_DEPLOYMENT_NAME": os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
+                "AZURE_OPENAI_DEPLOYMENT_NAME": os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
                 "AZURE_OPENAI_API_VERSION": os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
             }
 
+        # 2. Vérifications rapides
+        missing_keys = [k for k in ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT_NAME"] if not config.get(k)]
+        if missing_keys:
+            st.error(f"❌ Clés de configuration manquantes : {', '.join(missing_keys)}")
+            return None
+
+        # 3. Instancier le client Azure OpenAI
         client = AzureOpenAI(
             api_key=config["AZURE_OPENAI_API_KEY"],
-            api_version=config["AZURE_OPENAI_API_VERSION"],  # Utilisation de la version depuis les secrets
+            api_version=config["AZURE_OPENAI_API_VERSION"],
             azure_endpoint=config["AZURE_OPENAI_ENDPOINT"]
         )
+
+        # 4. Test de connexion immédiat
+        try:
+            test_response = client.chat.completions.create(
+                model=config["AZURE_OPENAI_DEPLOYMENT_NAME"],
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5
+            )
+            st.success("✅ Connexion réussie à Azure OpenAI.")
+            return client
         
-        # Test de connexion immédiat
-        test = client.chat.completions.create(
-            model=config["AZURE_OPENAI_DEPLOYMENT_NAME"],
-            messages=[{"role": "user", "content": "Test"}],
-            max_tokens=5
-        )
-        return client
-        
+        except Exception as test_error:
+            if hasattr(test_error, 'status_code'):
+                # Erreur HTTP spécifique
+                if test_error.status_code == 404:
+                    st.error("""
+                    ❌ Erreur 404 - Deployment Not Found
+                    👉 Le nom du déploiement est invalide ou n'existe pas sur Azure.
+                    🔎 Vérifiez dans Azure Portal > OpenAI Resource > Deployments.
+                    """)
+                elif test_error.status_code == 401:
+                    st.error("""
+                    ❌ Erreur 401 - Unauthorized
+                    👉 La clé API est incorrecte ou a expiré.
+                    🔑 Vérifiez la valeur de AZURE_OPENAI_API_KEY.
+                    """)
+                else:
+                    st.error(f"❌ Erreur HTTP {test_error.status_code} : {test_error.message}")
+            else:
+                # Erreur générique
+                st.error(f"❌ Erreur inattendue : {str(test_error)}")
+            return None
+
+    except requests.exceptions.ConnectionError as conn_err:
+        st.error(f"❌ Erreur de connexion réseau : {str(conn_err)}\n🌐 Vérifiez votre accès Internet ou l'URL du endpoint Azure.")
+        return None
+
     except Exception as e:
         st.error(f"""
         ❌ ERREUR CRITIQUE Azure OpenAI :
         {str(e)}
         
         🔍 Vérifiez que :
-        1. Le fichier .streamlit/secrets.toml existe
-        2. Les clés sont correctes
-        3. Le endpoint est accessible
-        4. La version de l'API est valide
+        1. Le fichier .streamlit/secrets.toml existe (ou le .env est chargé)
+        2. Les clés sont correctement définies
+        3. L'endpoint Azure OpenAI est valide et accessible
+        4. Le déploiement spécifié existe
+        5. La version API est supportée
         """)
         return None
     
