@@ -59,12 +59,13 @@ def setup_azure_openai():
             config = {
                 "AZURE_OPENAI_KEY": os.getenv("AZURE_OPENAI_KEY"),
                 "AZURE_OPENAI_ENDPOINT": os.getenv("AZURE_OPENAI_ENDPOINT"),
-                "DEPLOYMENT_NAME": os.getenv("DEPLOYMENT_NAME", "gpt-4o")
+                "DEPLOYMENT_NAME": os.getenv("DEPLOYMENT_NAME", "gpt-4o"),
+                "API_VERSION": os.getenv("API_VERSION", "2024-02-15-preview")
             }
 
         client = AzureOpenAI(
             api_key=config["AZURE_OPENAI_KEY"],
-            api_version="2024-02-15-preview",
+            api_version=config["API_VERSION"],  # Utilisation de la version depuis les secrets
             azure_endpoint=config["AZURE_OPENAI_ENDPOINT"]
         )
         
@@ -85,6 +86,7 @@ def setup_azure_openai():
         1. Le fichier .streamlit/secrets.toml existe
         2. Les clés sont correctes
         3. Le endpoint est accessible
+        4. La version de l'API est valide
         """)
         return None
     
