@@ -64,14 +64,14 @@ def setup_azure_openai():
             }
 
         client = AzureOpenAI(
-            api_key=config["AZURE_OPENAI_KEY"],
-            api_version=config["API_VERSION"],  # Utilisation de la version depuis les secrets
+            api_key=config["AZURE_OPENAI_API_KEY"],
+            api_version=config["AZURE_OPENAI_API_VERSION"],  # Utilisation de la version depuis les secrets
             azure_endpoint=config["AZURE_OPENAI_ENDPOINT"]
         )
         
         # Test de connexion immédiat
         test = client.chat.completions.create(
-            model=config["DEPLOYMENT_NAME"],
+            model=config["AZURE_OPENAI_DEPLOYMENT_NAME"],
             messages=[{"role": "user", "content": "Test"}],
             max_tokens=5
         )
