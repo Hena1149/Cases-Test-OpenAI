@@ -57,10 +57,10 @@ def setup_azure_openai():
             from dotenv import load_dotenv
             load_dotenv()
             config = {
-                "AZURE_OPENAI_KEY": os.getenv("AZURE_OPENAI_KEY"),
+                "AZURE_OPENAI_API_KEY": os.getenv("AZURE_OPENAI_API_KEY"),
                 "AZURE_OPENAI_ENDPOINT": os.getenv("AZURE_OPENAI_ENDPOINT"),
-                "DEPLOYMENT_NAME": os.getenv("DEPLOYMENT_NAME", "gpt-4o"),
-                "API_VERSION": os.getenv("API_VERSION", "2024-02-15-preview")
+                "AZURE_OPENAI_DEPLOYMENT_NAME": os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
+                "AZURE_OPENAI_API_VERSION": os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
             }
 
         client = AzureOpenAI(
