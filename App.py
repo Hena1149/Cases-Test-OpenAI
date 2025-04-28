@@ -64,7 +64,7 @@ def setup_azure_openai():
 
         client = AzureOpenAI(
             api_key=config["AZURE_OPENAI_KEY"],
-            api_version="2024-02-15",
+            api_version="2024-02-15-preview",
             azure_endpoint=config["AZURE_OPENAI_ENDPOINT"]
         )
         
