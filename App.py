@@ -15,6 +15,7 @@ import pdfminer.high_level
 import docx
 from openai import AzureOpenAI
 import os
+import requests
 
 # Configuration de l'application
 st.set_page_config(page_title="Générateur de Cas de test à partir du CDC", layout="wide", page_icon="📑")
